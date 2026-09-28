@@ -1,5 +1,6 @@
 # Latest Updates
 
+- [Document for Weed Simulation Celluar Automana Class](./docs/weed_celluar_automana.md)
 - [Document for Data Loader Module](./docs/gdf_dataloader.md)
 - [Document for Weed Simulation Methodology](./docs/weed_spread_simulation_methodology.md)
 - Perth Population Heatmap
