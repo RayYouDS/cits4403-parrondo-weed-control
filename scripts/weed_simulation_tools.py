@@ -80,28 +80,3 @@ def polygon_to_grid(gdf, cell_size=100, crs="EPSG:7850"):
     valid_mask = ~np.isnan(weed_grid)
 
     return weed_grid, valid_mask, transform
-
-
-def logistic_growth(t, w0, r, K):
-    """
-    Logistic Growth Model
-
-    Parameters
-    ----------
-    t : array-like
-        Time
-    w0 : float
-        Initial weed density/index
-    r : float
-        Intrinsic growth rate
-    K : float
-        Carrying capacity
-
-    Returns
-    -------
-    W : ndarray
-        Weed density/index at each time step
-    """
-    return K / (
-        1 + ((K - w0) / w0) * np.exp(-r * t)
-    )

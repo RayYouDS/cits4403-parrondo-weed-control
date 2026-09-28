@@ -183,16 +183,16 @@ class WeedCA:
                 dc, axis=1
             )
 
-            # 高 -> 低
+            # high density -> low
             difference = np.maximum(
                 neighbor - W,
                 0
             )
 
-            # 无效邻居不参与
+            # set invald neighbour to 0
             difference[~neighbor_valid] = 0
 
-            # 当前 cell 无效
+            # set invalid cells to 0
             difference[~valid] = 0
 
             diffusion += difference
@@ -221,6 +221,9 @@ class WeedCA:
 
         diff, cost = self.policy(W, valid_mask)
 
+        if not isinstance(cost, 'float'):
+            raise TypeError(f'Cost must be a float number, while {type(cost)} was given')
+        
         diff = np.asarray(diff)
 
         if diff.shape != W.shape:
@@ -279,7 +282,10 @@ class WeedCA:
         )
 
         plt.colorbar(label="Weed Index")
-        plt.title(f"Weed Index - Step {self.step_counter}")
+        plt.title(
+                f"Weed Index - Step {self.step_counter} | "
+                f"Total Cost: ${self.total_cost:,.2f}"
+        )
         plt.axis("off")
 
         plt.show()              
@@ -323,7 +329,8 @@ class WeedCA:
         frames,
         fps,
         modes=['growth', 'diffusion', 'removal'],
-        figsize=(4, 6)
+        figsize=(4, 6),
+        save_path=None
     ):
 
         self._check_mode(modes)
@@ -373,6 +380,14 @@ class WeedCA:
             interval=1000 / fps,
             blit=False
         )
+        
+        # Save GIF if requested
+        if save_path is not None:
+            anim.save(
+                save_path,
+                writer="pillow",
+                fps=fps
+            )
 
         plt.close(fig)
 
