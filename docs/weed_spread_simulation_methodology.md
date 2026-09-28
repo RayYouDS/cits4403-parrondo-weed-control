@@ -90,7 +90,10 @@ At each time step, weed propagation is influenced by the density difference betw
 A simplified diffusion term can be expressed as:
 
 $$
-\Delta W_i = D_w \sum_{j \in N(i)} (W_j-W_i)
+D_i =
+D_w 
+\sum_{j\in N_8(i)}
+\max(W_j-W_i,0)
 $$
 
 where:
