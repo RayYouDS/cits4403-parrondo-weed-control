@@ -1,0 +1,20 @@
+# Core numerical and tabular processing
+numpy
+pandas
+scipy
+
+# Geospatial data loading and rasterisation
+geopandas
+rasterio
+
+# Graph construction and visualisation
+networkx
+matplotlib
+
+# Data-download notebook
+requests
+
+# Notebook execution and GIF export
+jupyterlab
+ipykernel
+Pillow
