@@ -1,8 +1,14 @@
 """Removal policies used by weed simulation experiments."""
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
 import numpy as np
+
+Policy = Callable[
+    [np.ndarray, np.ndarray],
+    tuple[np.ndarray, float | np.number],
+]
 
 
 @dataclass(frozen=True)
@@ -24,15 +30,11 @@ class HighDensityRemovalPolicy:
     def __post_init__(self):
         # The threshold cannot be negative.
         if self.threshold < 0:
-            raise ValueError(
-                "threshold must be non-negative"
-            )
+            raise ValueError("threshold must be non-negative")
 
         # The removal rate represents a proportion from zero to one.
         if not 0 <= self.removal_rate <= 1:
-            raise ValueError(
-                "removal_rate must be between zero and one"
-            )
+            raise ValueError("removal_rate must be between zero and one")
 
         # At least one cell must be available for treatment.
         if (
@@ -40,15 +42,11 @@ class HighDensityRemovalPolicy:
             or isinstance(self.max_cells, bool)
             or self.max_cells <= 0
         ):
-            raise ValueError(
-                "max_cells must be a positive integer"
-            )
+            raise ValueError("max_cells must be a positive integer")
 
         # A negative treatment cost is not meaningful.
         if self.unit_cost < 0:
-            raise ValueError(
-                "unit_cost must be non-negative"
-            )
+            raise ValueError("unit_cost must be non-negative")
 
     def __call__(
         self,
@@ -59,9 +57,7 @@ class HighDensityRemovalPolicy:
 
         # Both arrays must describe the same simulation grid.
         if weed_grid.shape != valid_mask.shape:
-            raise ValueError(
-                "weed_grid and valid_mask must have the same shape"
-            )
+            raise ValueError("weed_grid and valid_mask must have the same shape")
 
         # Create an output grid containing no removal by default.
         removal = np.zeros_like(
@@ -71,15 +67,11 @@ class HighDensityRemovalPolicy:
 
         # Select valid cells whose weed index reaches the threshold.
         candidate_mask = (
-            valid_mask
-            & np.isfinite(weed_grid)
-            & (weed_grid >= self.threshold)
+            valid_mask & np.isfinite(weed_grid) & (weed_grid >= self.threshold)
         )
 
         # Convert candidate positions into one-dimensional indices.
-        candidate_indices = np.flatnonzero(
-            candidate_mask
-        )
+        candidate_indices = np.flatnonzero(candidate_mask)
 
         # No treatment is required if there are no candidates.
         if candidate_indices.size == 0:
@@ -88,9 +80,7 @@ class HighDensityRemovalPolicy:
         # Read the weed indices of all candidate cells.
         flat_weed_grid = weed_grid.ravel()
 
-        candidate_values = flat_weed_grid[
-            candidate_indices
-        ]
+        candidate_values = flat_weed_grid[candidate_indices]
 
         # Sort candidates from the highest weed index to the lowest.
         ranked_positions = np.argsort(
@@ -99,27 +89,19 @@ class HighDensityRemovalPolicy:
         )
 
         # Treat no more than max_cells during this step.
-        selected_positions = ranked_positions[
-            : self.max_cells
-        ]
+        selected_positions = ranked_positions[: self.max_cells]
 
-        selected_indices = candidate_indices[
-            selected_positions
-        ]
+        selected_indices = candidate_indices[selected_positions]
 
         # Remove the configured proportion from each selected cell.
         flat_removal = removal.ravel()
 
         flat_removal[selected_indices] = (
-            flat_weed_grid[selected_indices]
-            * self.removal_rate
+            flat_weed_grid[selected_indices] * self.removal_rate
         )
 
         # Calculate the cost from the amount actually removed.
-        cost = float(
-            np.sum(flat_removal)
-            * self.unit_cost
-        )
+        cost = float(np.sum(flat_removal) * self.unit_cost)
 
         return removal, cost
 
@@ -146,22 +128,15 @@ class SpreadFrontRemovalPolicy:
     def __post_init__(self):
         # The lower threshold cannot be negative.
         if self.lower_threshold < 0:
-            raise ValueError(
-                "lower_threshold must be non-negative"
-            )
+            raise ValueError("lower_threshold must be non-negative")
 
         # The upper threshold must exceed the lower threshold.
         if self.upper_threshold <= self.lower_threshold:
-            raise ValueError(
-                "upper_threshold must be greater than "
-                "lower_threshold"
-            )
+            raise ValueError("upper_threshold must be greater than " "lower_threshold")
 
         # The removal rate represents a proportion from zero to one.
         if not 0 <= self.removal_rate <= 1:
-            raise ValueError(
-                "removal_rate must be between zero and one"
-            )
+            raise ValueError("removal_rate must be between zero and one")
 
         # At least one cell must be available for treatment.
         if (
@@ -169,15 +144,11 @@ class SpreadFrontRemovalPolicy:
             or isinstance(self.max_cells, bool)
             or self.max_cells <= 0
         ):
-            raise ValueError(
-                "max_cells must be a positive integer"
-            )
+            raise ValueError("max_cells must be a positive integer")
 
         # A negative treatment cost is not meaningful.
         if self.unit_cost < 0:
-            raise ValueError(
-                "unit_cost must be non-negative"
-            )
+            raise ValueError("unit_cost must be non-negative")
 
     def __call__(
         self,
@@ -188,9 +159,7 @@ class SpreadFrontRemovalPolicy:
 
         # Both arrays must describe the same simulation grid.
         if weed_grid.shape != valid_mask.shape:
-            raise ValueError(
-                "weed_grid and valid_mask must have the same shape"
-            )
+            raise ValueError("weed_grid and valid_mask must have the same shape")
 
         # No weed is removed unless a cell is selected below.
         removal = np.zeros_like(
@@ -273,9 +242,7 @@ class SpreadFrontRemovalPolicy:
         )
 
         # Convert candidate positions into one-dimensional indices.
-        candidate_indices = np.flatnonzero(
-            candidate_mask
-        )
+        candidate_indices = np.flatnonzero(candidate_mask)
 
         # Return zero removal if no spread-front cells are available.
         if candidate_indices.size == 0:
@@ -285,9 +252,7 @@ class SpreadFrontRemovalPolicy:
         flat_spread_score = spread_score.ravel()
 
         # Read the scores of candidate cells.
-        candidate_scores = flat_spread_score[
-            candidate_indices
-        ]
+        candidate_scores = flat_spread_score[candidate_indices]
 
         # Rank cells from the highest spread score to the lowest.
         ranked_positions = np.argsort(
@@ -296,26 +261,117 @@ class SpreadFrontRemovalPolicy:
         )
 
         # Treat no more than max_cells during this step.
-        selected_positions = ranked_positions[
-            : self.max_cells
-        ]
+        selected_positions = ranked_positions[: self.max_cells]
 
-        selected_indices = candidate_indices[
-            selected_positions
-        ]
+        selected_indices = candidate_indices[selected_positions]
 
         # Remove the configured proportion from selected cells.
         flat_removal = removal.ravel()
 
         flat_removal[selected_indices] = (
-            flat_weed_grid[selected_indices]
-            * self.removal_rate
+            flat_weed_grid[selected_indices] * self.removal_rate
         )
 
         # Calculate cost from the amount actually removed.
-        cost = float(
-            np.sum(flat_removal)
-            * self.unit_cost
-        )
+        cost = float(np.sum(flat_removal) * self.unit_cost)
 
         return removal, cost
+
+
+@dataclass
+class AlternatingPolicy:
+    """Alternate between Policy A and Policy B."""
+
+    # Policy A implementation.
+    policy_a: Policy
+
+    # Policy B implementation.
+    policy_b: Policy
+
+    # Policy used during the first simulation step.
+    start_with: str = "A"
+
+    # Number of times this alternating policy has been called.
+    _call_count: int = field(
+        init=False,
+        default=0,
+        repr=False,
+    )
+
+    # Name of the policy used during the most recent call.
+    _last_policy_name: str | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+
+    def __post_init__(self):
+        # Both policies must be callable.
+        if not callable(self.policy_a):
+            raise TypeError("policy_a must be callable")
+
+        if not callable(self.policy_b):
+            raise TypeError("policy_b must be callable")
+
+        # The sequence must start with either A or B.
+        self.start_with = self.start_with.upper()
+
+        if self.start_with not in {"A", "B"}:
+            raise ValueError("start_with must be either 'A' or 'B'")
+
+    @property
+    def call_count(self) -> int:
+        """Return the number of completed policy calls."""
+
+        return self._call_count
+
+    @property
+    def last_policy_name(self) -> str | None:
+        """Return the name of the most recently used policy."""
+
+        return self._last_policy_name
+
+    @property
+    def next_policy_name(self) -> str:
+        """Return the name of the policy used on the next call."""
+
+        is_even_call = self._call_count % 2 == 0
+
+        if self.start_with == "A":
+            return "A" if is_even_call else "B"
+
+        return "B" if is_even_call else "A"
+
+    def reset(self) -> None:
+        """Reset the sequence so the next policy is A."""
+
+        self._call_count = 0
+        self._last_policy_name = None
+
+    def __call__(
+        self,
+        weed_grid: np.ndarray,
+        valid_mask: np.ndarray,
+    ) -> tuple[np.ndarray, float | np.number]:
+        """Apply the next policy in the alternating sequence."""
+
+        # Determine whether the current step uses A or B.
+        selected_policy_name = self.next_policy_name
+
+        # Select one policy for the current step.
+        if selected_policy_name == "A":
+            selected_policy = self.policy_a
+        else:
+            selected_policy = self.policy_b
+
+        # Apply only the selected policy during this step.
+        diff, cost = selected_policy(
+            weed_grid,
+            valid_mask,
+        )
+
+        # Update the sequence only after the policy succeeds.
+        self._call_count += 1
+        self._last_policy_name = selected_policy_name
+
+        return diff, cost

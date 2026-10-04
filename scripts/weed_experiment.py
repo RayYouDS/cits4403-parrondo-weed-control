@@ -295,6 +295,16 @@ def run_experiment(
                 "policy must be callable"
             )
 
+        # Reset stateful policies before starting a new experiment.
+        reset_policy = getattr(
+            policy,
+            "reset",
+            None,
+        )
+
+        if callable(reset_policy):
+            reset_policy()
+
         weedca.register_policy(policy)
 
         modes = (
