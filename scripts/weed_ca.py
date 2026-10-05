@@ -150,11 +150,13 @@ class WeedCA:
         self.weed_grid = new_W
 
     def _diffusion(self):
-
         W = self.weed_grid
         valid = self.valid_mask
 
-        diffusion = np.zeros_like(W, dtype=np.float32)
+        diffusion = np.zeros_like(
+            W,
+            dtype=np.float32,
+        )
 
         directions = [
             (-1, -1),
@@ -167,19 +169,42 @@ class WeedCA:
             (1, 1),
         ]
 
+        height, width = W.shape
+
+        padded_W = np.pad(
+            W,
+            pad_width=1,
+            mode="constant",
+            constant_values=np.nan,
+        )
+
+        padded_valid = np.pad(
+            valid,
+            pad_width=1,
+            mode="constant",
+            constant_values=False,
+        )
+
         for dr, dc in directions:
+            row_start = 1 + dr
+            col_start = 1 + dc
 
-            neighbor = np.roll(np.roll(W, dr, axis=0), dc, axis=1)
+            neighbor = padded_W[
+                row_start : row_start + height,
+                col_start : col_start + width,
+            ]
 
-            neighbor_valid = np.roll(np.roll(valid, dr, axis=0), dc, axis=1)
+            neighbor_valid = padded_valid[
+                row_start : row_start + height,
+                col_start : col_start + width,
+            ]
 
-            # high density -> low
-            difference = np.maximum(neighbor - W, 0)
+            difference = np.maximum(
+                neighbor - W,
+                0,
+            )
 
-            # set invald neighbour to 0
             difference[~neighbor_valid] = 0
-
-            # set invalid cells to 0
             difference[~valid] = 0
 
             diffusion += difference
@@ -188,7 +213,11 @@ class WeedCA:
 
         new_W = W + diffusion
 
-        new_W = np.clip(new_W, 0, self.carrying_capacity)
+        new_W = np.clip(
+            new_W,
+            0,
+            self.carrying_capacity,
+        )
 
         new_W[~valid] = np.nan
 
