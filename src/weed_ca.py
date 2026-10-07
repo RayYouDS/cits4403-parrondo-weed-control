@@ -1,5 +1,5 @@
 import numpy as np
-from scripts.weed_simulation_tools import *
+from src.weed_simulation_tools import *
 import matplotlib.pyplot as plt
 from collections.abc import Callable
 from scipy.ndimage import convolve
@@ -221,7 +221,7 @@ class WeedCA:
 
         diff, cost = self.policy(W, valid_mask)
 
-        if not isinstance(cost, 'float'):
+        if not isinstance(cost, float):
             raise TypeError(f'Cost must be a float number, while {type(cost)} was given')
         
         diff = np.asarray(diff)
