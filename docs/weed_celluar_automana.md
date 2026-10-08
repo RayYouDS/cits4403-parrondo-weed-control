@@ -3,7 +3,7 @@
 The Cellular Automaton (CA) related code has been encapsulated into the WeedCA class. While direct instantiation is supported, the recommended approach is to use the factory method `polygon_to_weedca()`:
 
 ```python
-from scripts.weed_ca import WeedCA
+from src.weed_ca import WeedCA
 
 weedca = WeedCA.polygon_to_weedca(gdf, 
                                   pressure_coef=0.05,

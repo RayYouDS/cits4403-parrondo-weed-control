@@ -1,7 +1,7 @@
-from scripts.geo_to_graph import gdf_to_graph
+from src.geo_to_graph import gdf_to_graph
 import geopandas as gpd
 from pathlib import Path
-from scripts.geo_visualize import plot_geodataframe, plot_networkx
+from src.geo_visualize import plot_geodataframe, plot_networkx
 import matplotlib.pyplot as plt
 
 
