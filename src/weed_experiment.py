@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import geopandas as gpd
 import numpy as np
 
-from scripts.weed_ca import WeedCA
+from src.weed_ca import WeedCA
 
 
 Policy = Callable[
