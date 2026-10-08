@@ -1,8 +1,19 @@
-# Latest Updates
+# CITS4403 Parrondo Weed Control
 
-- [Document for Weed Simulation Celluar Automana Class](./docs/weed_celluar_automana.md)
-- [Document for Data Loader Module](./docs/gdf_dataloader.md)
-- [Document for Weed Simulation Methodology](./docs/weed_spread_simulation_methodology.md)
+Computational modelling of weed spread and control in the Perth metropolitan
+area. The project compares individual weed-removal policies with alternating
+policy schedules to investigate Parrondo-like effects.
+
+Repository: <https://github.com/RayYouDS/cits4403-parrondo-weed-control>
+
+## Project Resources
+
+- [Weed Simulation Cellular Automaton Class](./docs/weed_celluar_automana.md)
+- [Data Loader Module](./docs/gdf_dataloader.md)
+- [Weed Simulation Methodology](./docs/weed_spread_simulation_methodology.md)
+
+## Example Outputs
+
 - Perth Population Heatmap
 
 <img src="./docs/figures/perth_population_heatmep.png" width="600">
@@ -11,7 +22,7 @@
 
 <img src="./docs/figures/weed_index_distribution.png" width="600">
 
-# Data Source
+## Data Sources
 
 |Dataset|Description|Source|
 |--|--|--|

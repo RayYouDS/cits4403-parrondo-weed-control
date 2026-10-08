@@ -7,7 +7,7 @@ Contributions:
 
 GitHub:
 
-- https://github.com/RayYouDS/cits4403-perth-graph
+- https://github.com/RayYouDS/cits4403-parrondo-weed-control
 
 # Background
 
