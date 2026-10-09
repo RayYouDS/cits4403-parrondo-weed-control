@@ -1,0 +1,104 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,booktabs,array}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\title{When Can Losing Weed-Control Policies Win Together?\\A Spatial Model of a Finite-Horizon Parrondo-Type Reversal}
+\author{CITS4403 Research Project}
+\date{9 October 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+A spatial cellular automaton was used to investigate whether two weed-control policies that individually fail to reduce mean infestation below its initial value can succeed when combined. A representative 100-step experiment produced changes of $+4.196\%$ under high-density removal and $+1.421\%$ under spread-front removal, compared with $-0.206\%$ and $-0.349\%$ under the two periodic orders. Both block-order controls failed. However, the reversal disappeared at longer horizons, and 105 of 200 balanced random orders also succeeded. The evidence therefore supports a conditional, order-dependent policy-mixing effect, rather than a uniquely periodic or permanently beneficial strategy. All comparisons share a budget ceiling, but not identical realised expenditure.
+\end{abstract}
+
+\section{Background and research question}
+Weed management must decide both where and when to intervene. Removing heavily infested areas and suppressing sources of spread address different states of a spatial system. A treatment can also change which locations become eligible for subsequent treatment. This motivates the question: can ordering complementary interventions change their collective outcome, even when each intervention alone fails to achieve an absolute reduction?
+
+Parrondo's paradox demonstrates that individually losing games can become winning when combined; random alternation can also produce the effect \cite{harmer}. Here the analogy concerns changes in a modelled infestation index over a finite interval, rather than the expected monetary gain of a gambling game. We use the term \emph{Parrondo-type reversal} to preserve this distinction. A successful random mixture does not invalidate the analogy, but it does weaken a claim that strict periodic alternation is uniquely responsible.
+
+The project's contribution is to investigate this reversal in a geographically initialised spatial model with threshold-dependent treatment, limited treatment capacity and a shared budget ceiling. Periodic, block and random orders distinguish sequence effects from simply including both policies. Duration and local parameter checks test whether a selected example generalises. This is a computational case study of model behaviour, not an empirically calibrated forecast of Perth weed abundance or a demonstrated least-cost management solution.
+
+\newpage
+\section{Model specification and justification}
+Locality polygons are taken from the WA Localities dataset \cite{landgate}. Population counts are read from the 2021 Census General Community Profile for Western Australian Postal Areas \cite{abs}. The loader joins population to postcode-level land area and assigns the resulting density to localities. Polygons with postcodes 6000--6199 define the study area; this operational selection is not asserted to be an official metropolitan boundary. The model rasterises these polygons into 1 km square cells in EPSG:7850. Cells outside the selected area are excluded.
+
+Each valid cell has an index $W_i\in[0,1]$, a relative state variable rather than measured biomass. Its initial value is
+\[
+W_i(0)=0.05+0.95\exp(-0.000783P_i),
+\]
+where $P_i$ is population density per square kilometre. This imposes the hypothesis that denser settlement is associated with stronger suppression. The relation, its coefficient and the ecological rates have not been fitted to observed weed data. The spatial resolution is a computational modelling choice. A step is an abstract update interval, not a validated week.
+
+Each step applies growth, directional propagation and removal in that order. With $K=1$, the first two updates are
+\begin{align*}
+W_i^g &= \operatorname{clip}_{[0,1]}\{W_i+rW_i(1-W_i)\},\\
+W_i^p &= \operatorname{clip}_{[0,1]}\left\{W_i^g+
+\alpha\sum_{j\in N_8(i)}\max(W_j^g-W_i^g,0)\right\}.
+\end{align*}
+The eight-neighbour rule excludes invalid neighbours and does not wrap opposite edges together. It represents propagation from higher-index neighbours without subtracting from the source: it is not mass-conserving diffusion. Logistic growth keeps the model simple while making increments state-dependent; clipping enforces the index bounds.
+
+Policy A ranks cells with $W_i^p\geq h$ by decreasing index. Policy B considers cells with $\ell\leq W_i^p<h$ and a positive outward score $S_i=\sum_{j\in N_8(i)}\max(W_i^p-W_j^p,0)$, ranking them by that score. Each policy treats at most $m$ cells per call and removes a fraction $a$ or $b$ of their current index. Stable sorting resolves equal scores. B thus targets potential outward spread within a density band, not every medium-density cell.
+
+The final state is $W_i(t+1)=W_i^p-R_i$. Treatment costs $200\sum_iR_i$ model-cost units. If an action exceeds the remaining budget, all its removals are scaled proportionally. After exhaustion, growth and propagation continue and treatment is zero. This continuous scaling is convenient computationally but is not a model of indivisible real treatment operations.
+
+\newpage
+\section{Experimental design}
+Steps 01--04 establish no-control, individual-policy and alternating-policy experiments. Steps 05--07 explore candidates and introduce sequence and budget controls. The later 2,400-condition screen varies eight parameters: the two removal fractions, treatment capacity, upper and lower thresholds, growth, propagation and budget. It is a sampled discrete search, not a full factorial design. The supplied Step09 notebook records the sampled levels and marginal associations; these associations do not isolate causal sensitivity to one parameter.
+
+Step08 selects candidate 2036 after block and preliminary random-order checks. The demonstration reruns all controls under this candidate rather than conflating earlier experiments with different settings. Parameters are $a=0.15$, $b=0.65$, $m=50$, $h=0.7$, $\ell=0.45$, $r=0.01$, $\alpha=0.01$, $T=100$, with a budget ceiling of 250,000. Every strategy starts from the same grid. The six active controls are A only, B only, AB, BA, 50 A calls followed by 50 B calls, and the reverse. Mixed schedules therefore have equal numbers of calls, although eligible cells, removal amounts and realised costs can differ.
+
+The primary outcome is $\Delta_T=(\bar W_T-\bar W_0)/\bar W_0$. A strategy wins when $\Delta_T<0$ and loses when $\Delta_T>0$; zero is neutral. Losing does not mean worse than no treatment. A strict endpoint reversal requires both individual policies to lose and at least one mixed policy to win. Our stronger six-condition check requires both periodic orders to win and both block orders to lose. Its margin is the minimum of the four positive control changes and the negatives of the two periodic changes. This differs from ranking candidates by their best periodic order. Cumulative mean index, calculated by trapezoidal integration, and actual expenditure are secondary measures.
+
+Step10 compares candidates 2036 and 1370 over 52, 100, 156 and 260 steps, scaling the budget ceiling by $T/100$. Separately, growth and propagation are multiplied by 0.75, 1 and 1.25, producing nine local ecological scenarios per candidate. There are 156 deterministic result rows, including the intentional duplicate baseline across duration and ecology checks. Each candidate also has 200 balanced random schedules using seeds 0--199. These are repetitions of order randomisation, not independent field populations or ecological uncertainty draws.
+
+The demo also records when A moves a treated cell into B's density band and whether the immediately following B action actually treats it. This observational diagnostic delegates actions to the original policy and checks that the complete state and cost histories match the uninstrumented AB run. It measures threshold handoff without altering policy behaviour; it does not isolate its causal contribution from all other processes.
+
+\newpage
+\section{Results}
+The 2,400-condition screen contains 53 conditions with a strict reversal under at least one periodic order and 51 under both. These counts precede the later block and random controls and must not be interpreted as population probabilities. For candidate 2036, the initial mean is approximately 0.860575. Table~\ref{tab:main} shows the six active controls. Periodic ordering crosses the initial-value threshold, whereas both block orders fail despite the same A/B call counts.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Strategy & Final mean & Change (\%) & Actual cost\\
+\midrule
+A only & 0.896682 & +4.196 & 149,107\\
+B only & 0.872800 & +1.421 & 199,967\\
+AB & 0.858799 & -0.206 & 228,213\\
+BA & 0.857575 & -0.349 & 229,166\\
+A block B & 0.901066 & +4.705 & 138,088\\
+B block A & 0.886328 & +2.993 & 173,466\\
+\bottomrule
+\end{tabular}
+\caption{Candidate 2036 after 100 steps. Lower final mean is preferable. Costs are rounded model-cost units; the common 250,000 ceiling is not exhausted. Source: saved Step10 baseline results, reproduced in the demonstration.}
+\label{tab:main}
+\end{table}
+
+The shared ceiling does not equalise expenditure: AB spends substantially more than either individual policy. Its benefit cannot therefore be described as an established equal-spending advantage. The policies create different treatment opportunities as the simulation evolves.
+
+At 52 steps, candidate 2036 still satisfies the six-condition reversal. At 156 steps its AB and BA changes become $+0.389\%$ and $+0.156\%$, and at 260 steps $+1.306\%$ and $+0.966\%$. Candidate 1370 also loses the periodic endpoint improvement at 156 and 260 steps; at 52 steps B alone already wins, so the strict reversal is absent. Both candidates satisfy the six-condition check at 100 steps. The local ecological grid for 2036 satisfies it in five of nine settings, showing sensitivity around the chosen parameters.
+
+The expanded random experiment yields 105/200 wins for candidate 2036 and 110/200 for candidate 1370. Preliminary screening had found 9/20 wins for each. The larger sample consequently does not support the earlier characterisation that most random orders lose. Some random orders also improve more than AB or BA. Periodicity is therefore neither necessary nor demonstrated to be optimal.
+
+Time-series, spatial-state, handoff, random-distribution and local-sensitivity figures are provided in the executable \href{https://github.com/RayYouDS/cits4403-parrondo-weed-control}{project repository}, in \texttt{notebooks/parrondo\_demo.ipynb}. They distinguish the magnitude of the endpoint reversal from the broader trajectory and spatial distribution.
+
+\newpage
+\section{Discussion and conclusions}
+An initially plausible mechanism is direct threshold handoff: A cannot keep treating a cell below its threshold, while B cannot initially treat a cell above it. Ignoring between-step dynamics, $0.80$ becomes $0.68$ after A and could become $0.238$ after B. However, the diagnostic records zero A-to-B density-band transfers in the representative AB run. A prioritises the highest-index cells, so this illustrative calculation does not describe the cells actually selected. Direct handoff is therefore not supported as the explanation of this example.
+
+The surviving explanation is complementarity across different density bands, combined with state-dependent spatial dynamics and treatment opportunities. A combined trajectory is not a weighted average of standalone outcomes. Block ordering leaves long intervals during which one eligibility class is untreated. Growth, propagation, ranking and the larger realised expenditure can all contribute to the difference under frequent switching. These are mechanistic hypotheses consistent with the rules and comparisons, rather than separately identified causal contributions. Matched-resource comparisons and interventions on propagation would provide stronger causal evidence. The zero-handoff result is useful because it rejects an attractive but unsupported account.
+
+The main finding is a finite-horizon, order-dependent reversal in a selected model regime. It is narrower than a claim of durable suppression, general ecological validity or an optimal periodic schedule. A treatment may remain better than another strategy while no longer meeting the absolute initial-value criterion, so failure of the reversal at longer horizons should not be confused with complete loss of comparative benefit. Conversely, the small negative endpoint changes at 100 steps should not conceal sensitivity to duration and ecological parameters.
+
+Selection from the same search used to discover the phenomenon limits generalisation. Local perturbations and additional random seeds strengthen the description of the selected conditions, but are not independent validation of the spatial model. Population-based initialisation, non-conservative propagation, the uncalibrated time scale and artificial treatment costs are further limitations. Spatial resolution and alternative initial distributions have not been systematically validated here. Future work should test held-out parameter settings and initial states, compare matched expenditure or removal totals, and intervene on the proposed handoff mechanism.
+
+The study answers the research question conditionally: two individually unsuccessful policies can jointly reduce the index below its starting level. Ordering changes the evolving spatial state and treatment opportunities, but direct A-to-B threshold handoff is absent in the representative run. The finding establishes policy interaction in this model, with explicit boundaries on its persistence, specificity and causal interpretation.
+
+\begin{thebibliography}{9}
+\bibitem{harmer} Harmer, G. P. and Abbott, D. (1999). Losing strategies can win by Parrondo's paradox. \emph{Nature}, 402, 864. \url{https://doi.org/10.1038/47220}.
+\bibitem{landgate} Landgate. \emph{Localities (LGATE-234)}. WA Government data catalogue. \url{https://catalogue.data.wa.gov.au/dataset/localities}. Local project copy used for spatial boundaries.
+\bibitem{abs} Australian Bureau of Statistics (2021). \emph{Census DataPacks: General Community Profile, Western Australia, Postal Areas}. \url{https://www.abs.gov.au/census/find-census-data/datapacks}.
+\end{thebibliography}
+\end{document}
