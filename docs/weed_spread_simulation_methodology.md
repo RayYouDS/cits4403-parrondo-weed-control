@@ -1,138 +1,117 @@
-# Introduction
+# Weed model, policies and interpretation
 
-This project aims to simulate weed spread across the Perth metropolitan area using GIS data.
+This guide describes the implemented model used by `notebooks/demonstration.ipynb` and the final report. Earlier design ideas, such as a probabilistic occurrence rule or a physical buffer belt, are not the rules used in these experiments.
 
-Following the concept of a celluar automata, population density data are used to construct a spatially varying initial weed density index. The resulting spatial distribution is then converted into a raster/grid representation, which serves as the initial state of the cellular automaton.
+## Spatial inputs and initialisation
 
-At each time step, the model simulates natural weed growth and spatial propagation between neighbouring cells.
+`utils/data_loader.py` joins ABS 2021 Census population to postcode-level land area derived from Landgate locality polygons. The same postcode density is assigned to each locality in that postcode. Postcodes 6000-6199 define the operational Perth study region; they are not an exact official metropolitan boundary.
 
-# Key Assumptions
-
-Accurate, large-scale weed density data are difficult to obtain. Existing weed observations are generally collected as point-based field observations rather than continuous, large-scale mesh or raster datasets, making them difficult to directly incorporate into the proposed cellular automaton model.
-
-Therefore, this experiment adopts the following key assumption:
-
-> Areas with higher population density generally have less available space for weed growth and are subject to greater levels of human management and suppression. Therefore, their weed density is assumed to be relatively lower.
-
-Based on this assumption, a population-density-based proxy model is constructed to generate the initial weed density index.
-
-## Exponential Decay Model
-
-The simplest formulation is an exponential decay model:
+The population-density initialisation is
 
 $$
-W=W_{cap} e^{-kD}
+W_i^0 = W_{\min} + (W_{\max}-W_{\min})e^{-kD_i}.
 $$
 
-Where
+Here, $D_i$ is population density in people per square kilometre. The final case uses $W_{\min}=0.05$, $W_{\max}=1$ and $k=0.000783$. Higher population density is assumed to imply greater suppression and a lower initial Weed Index. This is a modelling assumption, not a fit to observed infestation.
 
-- W - weed density index
-- $W_{cap}$ - maximum weed density index (cap limit) for each grid cell
-- D - Population density (people / $km^2$)
-- k - pressure coefficient controlling the strength of human suppression
+Rasterisation in EPSG:7850 with a 1 km target cell size gives a 203 by 124 grid with 6,933 valid cells. Cells outside the selected land area are `NaN`. The initial regional mean is approximately 0.860575. The Weed Index is a relative model quantity, not measured biomass or an occurrence probability.
 
-An extended version introduces both lower and upper bounds:
+## Update order
 
-$$
-W=W_{min}+(W_{max}−W_{min})e^{−kD}
-$$
+One step is an abstract update, not a calibrated week. The simulator applies **growth → propagation → removal**, using the updated state at each stage.
 
-This formulation constrains the weed density index within a predefined range and prevents it from approaching zero in areas with very high population density.
+### Natural growth
 
-E.g. a simulated weed index heat map at presure coefficient = 0.05
-
-<img src='figures/weed_index_distribution.png' width='600'>
-
-## weed occurrence probability
-
-Alternatively, a weed occurrence probability can be used to represent the likelihood that a cell contains or develops weeds:
+The discrete logistic update is
 
 $$
-P(weed) = \frac{1}{1+e^{a+bD}}
+G_i^t = rW_i^t\left(1-\frac{W_i^t}{K}\right),\qquad
+W_i^{t,\mathrm{growth}} = W_i^t + G_i^t.
 $$
 
-where $a$ controls the baseline occurrence probability and $b$ controls the effect of population density.
+The implementation clips the updated index to $[0,K]$; the reported case uses $K=1$ and $r=0.01$.
 
-This formulation represents the assumption that human activity influences the persistence and establishment of weeds. It can subsequently be incorporated into the time-step update rules. For example, cells with higher population density may have a lower probability of natural weed establishment, while weed propagation from neighbouring cells may remain an important source of spread.
+### Spatial propagation
 
-# Cell Update Rules
-
-## Natural Growth
-
-Weeds grow within individual cells, so the weed density index of a cell can increase over time.
-
-When sufficient space and resources are available, the weed population is assumed to increase according to a growth function.
-
-## Cap limit
-
-Each cell has a maximum carrying capacity determined by available space and resources.
-
-As the weed density approaches the carrying capacity, its growth rate decreases. Therefore, a logistic or other saturating growth function may be used to represent the expected S-shaped growth curve:
+For up to eight valid neighbours, propagation uses only positive differences:
 
 $$
-\frac{dW}{dt} = rW\left(1-\frac{W}{W_{cap}}\right)
+D_i^t = \alpha\sum_{j\in N_8(i)}
+\max\left(W_j^{t,\mathrm{growth}}-W_i^{t,\mathrm{growth}},0\right),
 $$
 
-where:
-
-- $r$ — intrinsic growth rate
-- $W$ — current weed density index
-- $W_{cap}$ — carrying capacity of the cell
-
-This prevents unlimited growth and ensures that the simulated weed density eventually approaches a stable upper limit.
-
-## Diffusion and Spatial Spread
-
-Weeds can spread from one cell to neighbouring cells.
-
-At each time step, weed propagation is influenced by the density difference between neighbouring cells. Weeds are therefore assumed to spread preferentially from cells with higher weed density towards neighbouring cells with lower weed density, following a diffusion-like mechanism.
-
-A simplified diffusion term can be expressed as:
-
 $$
-D_i =
-D_w 
-\sum_{j\in N_8(i)}
-\max(W_j-W_i,0)
+W_i^{t,\mathrm{prop}} = W_i^{t,\mathrm{growth}}+D_i^t.
 $$
 
-where:
+The reported case uses $\alpha=0.01$. Values are clipped to $[0,K]$. Grid edges do not wrap, and invalid neighbours do not contribute. Despite the API name `diffusion`, this is **not mass-conserving diffusion**: it increases lower-index cells without subtracting from the source cells. A signed neighbour-difference sum would be a different model.
 
-- $W_i$ — weed density of the current cell
-- $W_j$ — weed density of a neighbouring cell
-- $N(i)$ — set of neighbouring cells
-- $D_w$ — weed diffusion coefficient
+### Removal and cost
 
-This mechanism allows high-density weed patches to gradually propagate into surrounding low-density cells.
+For a removal grid $R_i^t$ supplied by a registered policy,
 
-Considering all three factors, the weed index formula along timesteps can be:
+$$
+W_i^{t+1}=W_i^{t,\mathrm{prop}}-R_i^t.
+$$
 
-$$ W_i^{t+1} = W_i^t + \underbrace{rW_i^t(1-W_i^t/W_{cap})}_{\text{natural growth}} + \underbrace{D_w\sum_{j\in N(i)}(W_j^t-W_i^t)}_{\text{diffusion}} - \underbrace{R_i^t}_{\text{removal}} $$
+A policy returns a non-negative removal array and a scalar step cost, without changing its input grid. In the reported experiments, cost is **200 model-cost units per unit of index removed**, not a calibrated currency amount. Cumulative cost is the sum of step costs. The budget wrapper scales the last treatment if it would exceed the remaining cap; after exhaustion, growth and propagation continue with zero removal.
 
-# Additional Experiments
+## Policies for sample 2036
 
-If time permits, additional experiments can be conducted to investigate potential weed-control strategies.
+Policy settings below apply to the post-growth, post-propagation state $X_i=W_i^{t,\mathrm{prop}}$.
 
-## Control Policy A: Concentrated Weed Removal
+| Parameter | Value |
+|---|---:|
+| A removal fraction $a$ | 0.15 |
+| B removal fraction $b$ | 0.65 |
+| Maximum treated cells per call $m$ | 50 |
+| Density boundary $h$ | 0.70 |
+| B lower threshold $\ell$ | 0.45 |
+| Common budget cap | 250,000 model-cost units |
+| Main horizon | 100 steps |
 
-Apply targeted weed-removal operations to cells with high weed density.
+**Policy A** selects cells with $X_i\ge h$, ranks them from highest index to lowest, treats at most $m$, and removes fraction $a$ of each selected index.
 
-The objective is to investigate whether concentrating limited removal resources in high-density areas can reduce the overall weed population or slow its spatial expansion.
+**Policy B** considers $\ell\le X_i<h$ and ranks positive-score candidates using
 
-## Control Policy B: Buffer Zone
+$$
+S_i=\sum_{j\in N_8(i)}\max(X_i-X_j,0).
+$$
 
-Create a buffer belt between heavily infested areas and surrounding cells.
+It treats at most $m$ cells and removes fraction $b$ of each selected index. This is a spread-oriented ranking within an index band, not the construction of a physical buffer belt. Both policies use stable sorting and reassess eligibility at every call.
 
-The objective is to investigate whether reducing connectivity between high-density weed patches can mitigate spatial propagation.
+## Schedules and reversal criterion
 
-## Cost Analysis
+Baseline has no removal. A only and B only use their policy each step. AB starts with A and switches every step, giving 50 calls of each policy over 100 steps. The notebook additionally examines BA, A50B50, B50A50 and balanced random permutations of 50 A and 50 B calls. A mixed schedule makes one policy call per step; it does not apply both policies simultaneously.
 
-A simplified cost model can be introduced to evaluate the economic implications of different control strategies.
+For strategy $s$, the final relative change is
 
-For example, a reference removal cost could be defined as:
+$$
+\Delta_s=\frac{\overline W_s(T)-\overline W(0)}{\overline W(0)}.
+$$
 
-> AUD $100 per 0.1 weed index per grid
+A Parrondo-type reversal requires $\Delta_A>0$, $\Delta_B>0$, $\Delta_{AB}<0$. The margin is
 
-The total cost of a control strategy can then be estimated from the number and area of cells requiring treatment.
+$$
+M_{AB}=\min(\Delta_A,\Delta_B,-\Delta_{AB}).
+$$
 
-This allows different intervention strategies to be compared in terms of both their simulated effectiveness and operational cost.
+Baseline provides context but is not part of the sign test. The test concerns the final state, not monotonic increase or decrease throughout the run. The margin is not a confidence interval.
+
+## Results and limits
+
+At 100 steps, Baseline changes by +11.342%, A by +4.196%, B by +1.421%, and AB by -0.206%. Sample 2036 is the Step 08 candidate with additional schedule-control evidence; it is not the largest AB-margin example in the 2,400-condition search.
+
+None of A, B or AB exhausts the original cap. Actual spending is approximately 149,107, 199,967 and 228,213 units respectively, so equal caps do not equalise expenditure. The reversal cannot be explained by budget exhaustion in this original run, and it does not establish superior cost efficiency.
+
+No immediate A-to-B handoff was recorded. The two block schedules lose, but random orders can also win: the saved first 100 seeds give 46 decreases and the 200-seed extension gives 105. Random B target ranking makes AB increase in the three saved interventions. The reversal disappears when propagation is disabled (the single policies then win), at the lower matched cap of approximately 124,279 units, and at the tested 156-step horizon with a proportional cap of 390,000 units. These observations constrain possible explanations without establishing a unique mechanism.
+
+The saved search samples 2,400 combinations, not the full Cartesian product. Its exact tested settings are preserved in `results/strong_parrondo_equal_budget_search.csv`; the original sampling script and seed have not been recovered. The consolidated notebook provides a smaller live sensitivity search, and marginal search associations should not be interpreted as isolated causal importance.
+
+## Further reading
+
+- [Demonstration notebook](../notebooks/demonstration.ipynb): live code, explanation cells and shared report-figure exports.
+- [Step 08 validation](../notebooks/experiments/step08_parrondo_strong_condition_validation.ipynb): the selected candidate and additional schedule controls.
+- [Final report](../report/CITS4403_25292965_25182537.pdf): scientific interpretation, references and AI-use disclosure.
+- [CA API guide](weed_celluar_automana.md): simulator methods and policy interface.
+- [Data-loader guide](gdf_dataloader.md): input preprocessing and population-density fields.

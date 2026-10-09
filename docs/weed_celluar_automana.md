@@ -4,11 +4,14 @@ The Cellular Automaton (CA) related code has been encapsulated into the WeedCA c
 
 ```python
 from src.weed_ca import WeedCA
+from utils.data_loader import load_locality_data
 
-weedca = WeedCA.polygon_to_weedca(gdf, 
-                                  pressure_coef=0.05,
-                                  cell_size=500,
-                                  growth_rate=0.02,
+localities = load_locality_data()
+metro = localities[localities["postcode"].astype(int).between(6000, 6199)].copy()
+weedca = WeedCA.polygon_to_weedca(metro,
+                                  pressure_coef=0.000783,
+                                  cell_size=1000,
+                                  growth_rate=0.01,
                                   diffusion_rate=0.01)
 ```
 
@@ -27,7 +30,7 @@ weedca = WeedCA.polygon_to_weedca(gdf,
 | Initialization Parameters | `pressure_coef` | `float` | Coefficient controlling the effect of population density on the initial Weed Index. |
 | Initialization Parameters | `w_min` | `float` | Minimum Weed Index used in the initialization function. |
 | Initialization Parameters | `w_max` | `float` | Maximum Weed Index used in the initialization function. |
-| Model Parameters | `growth_rate` | `float` | Rate controlling the weekly growth of the Weed Index under the logistic growth model. |
+| Model Parameters | `growth_rate` | `float` | Rate controlling growth per abstract simulation step of the Weed Index under the logistic growth model. |
 | Model Parameters | `carrying_capacity` | `float` | Maximum Weed Index that the logistic growth process approaches or is constrained by. |
 | Model Parameters | `diffusion_rate` | `float` | Coefficient controlling the rate at which Weed Index spreads between neighbouring cells. |
 | Policy | `policy` | `Callable` / `None` | The management policy applied during the removal phase. It receives the current Weed Index grid and valid-cell mask and returns the amount of weed removed and the associated cost. |
@@ -52,18 +55,18 @@ Example output:
 
 Simply call `step()` method to push the CA forward:
 
-```{r}
+```python
 weedca.step()
 ```
 
-Note: The semantic meaning of one simulation step should be defined in advance. For example, one step may represent one week.
+One step is an abstract model update. No conversion to weeks is calibrated in the final report or demonstration. Updates apply growth, propagation and removal in that order when all three modes are enabled.
 
 ## How can I get animated simulation
 
 Call `animate()` method with the frame, FPS (frames per second) and modes (explained later) you want:
 
 ```python
-weedca.animate(frames=108, fps=20)
+weedca.animate(frames=100, fps=20, modes=['growth', 'diffusion'])
 ```
 
 Example Output:
@@ -76,7 +79,7 @@ By passing a modes list to the simulation methods, the CA will only execute the 
 
 ```python
 modes = ['growth', 'diffusion']
-weedca.animate(frames=108, fps=20, modes=modes)
+weedca.animate(frames=100, fps=20, modes=modes)
 ```
 
 In this example, the removal process will be omitted from the simulation.
@@ -86,10 +89,13 @@ In this example, the removal process will be omitted from the simulation.
 First, define a policy function and register it using the `register_policy()` method:
 
 ```python
+import numpy as np
+
 def simple_removal(weed_grid, mask):
-    weed_grid[~mask] = 0    # set invalid cell to 0
-    diff = weed_grid * 0.001 # remove 0.001 times weed index of each cell
-    cost = np.sum(diff * 200) # cost is all removal times 200 dollars
+    # Return removal without modifying the simulator input.
+    values = np.where(mask, weed_grid, 0)
+    diff = values * 0.001
+    cost = float(np.sum(diff) * 200)  # Model-cost units, not dollars.
 
     return diff, cost
 
@@ -112,18 +118,14 @@ The policy function should calculate the amount of Weed Index to remove from eac
 
 The CA subsequently subtracts diff from the current Weed Index grid and adds cost to `total_cost`.
 
-## Which parameters should I choose during simulation process
+## Repeated simulations and policy state
 
-The parameters should be interpreted according to the semantic meaning assigned to one simulation step.
+`simulate(steps=100, modes=[...])` resets the grid to its initial state, resets the simulator's cost and step counter, and returns `(history, cost_history)`. Both arrays include step zero, so their first dimension has length 101. `animate(frames=100, ...)` uses this simulation history and returns an HTML animation. `fps` controls playback speed, not ecological time.
 
-For example, if one simulation step represents one week, a `growth_rate` of 0.02 means that the growth component is evaluated at a rate of 2% per week when the Weed Index is low relative to its carrying capacity.
+`WeedCA.reset()` does not reset a stateful registered policy. For independent scheduled/budgeted runs, construct a fresh policy or explicitly call its `reset()` before simulating. The `run_experiment()` helper does this policy reset automatically. `show_grid()` and `animate()` retain a dollar sign in the original display interface; interpret those values as model-cost units.
 
-For comparison, under a simple unconstrained exponential-growth assumption:
+## Report and demonstration settings
 
-```python
-(1 + 0.02) ** 52    # 2.8003281854481816
-```
+Sample 2036 uses `pressure_coef=0.000783`, `cell_size=1000`, `growth_rate=0.01`, `diffusion_rate=0.01`, `carrying_capacity=1`, initial bounds 0.05 and 1, and 100 abstract steps. These values are explicit experiment settings, not necessarily the API defaults or calibrated ecological rates. See [model rules and policies](weed_spread_simulation_methodology.md) for the policy settings and reversal definition.
 
-In other words, a constant 2% weekly growth rate would result in the index becoming approximately 2.8 times its initial value after one year.
-
-For `diffusion_rate`, the parameter controls the amount of Weed Index transferred or propagated from neighbouring cells according to the diffusion rule. A conservative starting point is to set it lower than the growth rate, for example around one-half or one-quarter of `growth_rate`, and then evaluate the resulting behaviour through sensitivity analysis.
+The earlier embedded images in this API guide illustrate the interface and may use older parameters. Use the current demonstration notebook and `report/sample2036/` for the final case's outputs.

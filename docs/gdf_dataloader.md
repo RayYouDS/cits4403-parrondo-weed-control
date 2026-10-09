@@ -1,6 +1,6 @@
 # Introduction
 
-The data_loader.py module encapsulates the loading and preprocessing of the GeoPackage and Census data.
+The `utils/data_loader.py` module encapsulates the loading and preprocessing of the GeoPackage and Census data.
 
 The preprocessing workflow includes:
 
@@ -10,7 +10,7 @@ The preprocessing workflow includes:
 
 # Examples
 
-The data can be loaded by calling `the load_locality_data()` function:
+The data can be loaded by calling the `load_locality_data()` function:
 
 ```python
 from utils.data_loader import load_locality_data
@@ -18,10 +18,12 @@ from utils.data_loader import load_locality_data
 localities = load_locality_data()
 ```
 
-If the working directory differs from the default location, a custom base path for the datasets can be provided:
+By default, data paths are resolved relative to the module location, independently of the working directory. To use another data directory, pass its path explicitly (a relative path is resolved from the working directory):
 
 ```python
 from utils.data_loader import load_locality_data
+
+from pathlib import Path
 
 BASE_PATH = Path('data')
 localities = load_locality_data(BASE_PATH)
@@ -33,16 +35,18 @@ The function returns a GeoPandas GeoDataFrame containing geographic information 
 
 The localities `GeoDataFrame` contains several fields. The following fields are particularly useful for this project:
 
-|Feild|Type|Description|
+|Field|Type|Description|
 |--|--|--|
-|`name`|object(str)|The name of the suburb|
-|`postcode`|int64|The postcode of the suburb||
-|`land_area`|float64|The land area of the suburb in square metres|
-|`population_density_km2`|float64|The population density of the suburb in people per square kilometre|
+|`name`|object(str)|The name of the locality|
+|`postcode`|int64|The postcode of the locality|
+|`land_area`|float64|The land area of the locality in square metres|
+|`population_density_km2`|float64|Postcode-level population density assigned to the locality, in people per square kilometre|
 
-A heatmap visualization of Perth Metropolitan Area is:
+Population is joined at postcode level, not measured separately for each locality. The study region is selected using postcodes 6000-6199; this is an operational boundary, not an exact official metropolitan boundary. Example heatmap:
 
 ```python
+from pathlib import Path
+
 BASE_PATH = Path('data')
 
 localities = load_locality_data(BASE_PATH)
@@ -66,7 +70,7 @@ metro.plot(
     linewidth=0.3
 )
 
-ax.set_title("Population Density in Perth Metropolitan Area")
+ax.set_title("Population Density in the Selected Perth Study Region")
 ax.set_axis_off()
 
 plt.show()
