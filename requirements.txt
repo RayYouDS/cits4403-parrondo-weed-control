@@ -17,6 +17,9 @@ requests
 # Notebook execution and GIF export
 jupyterlab
 ipykernel
+nbformat
+ipython
+matplotlib-inline
 Pillow
 
 tqdm
