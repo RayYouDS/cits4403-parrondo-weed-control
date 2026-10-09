@@ -8,7 +8,7 @@ Repository: <https://github.com/RayYouDS/cits4403-parrondo-weed-control>
 
 ## Parrondo demonstration and report
 
-- [Executed Japanese demo](notebooks/parrondo_demo.ipynb): a ten-minute route
+- [Executed demo](notebooks/parrondo_demo.ipynb): a ten-minute route
   through Steps 01–10, representative simulations, mechanism checks and limitations.
 - [English report source](notebooks/parrondo_report.tex): A4, 11pt, one-inch
   margins. Compilation/page count is not yet verified: the desktop compiler
@@ -24,12 +24,7 @@ python -m pip install -r requirements.txt
 python -m jupyterlab notebooks/parrondo_demo.ipynb
 ```
 
-Choose **Restart Kernel and Run All**. Alternatively, execute every code cell
-in a fresh Python process and save rich outputs/figures without a Jupyter server:
-
-```powershell
-python scripts/execute_parrondo_demo.py
-```
+Choose **Restart Kernel and Run All**.
 
 The demo reruns seven representative controls plus an instrumented AB run.
 It reads the saved Step10 CSVs rather than repeating the larger robustness study.

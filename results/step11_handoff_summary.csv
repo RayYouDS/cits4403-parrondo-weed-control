@@ -1,0 +1,3 @@
+sample_id,strategy,A_to_B_band_events,next_B_treated_events,B_treatment_events,handoff_share_of_B,relative_change,budget_ceiling,final_cost,budget_exhaustion_step
+2036,AB,0,0,2392,0.0,-0.0020637143048106584,250000.0,228212.65625,
+2036,BA,0,0,2380,0.0,-0.003485859754558183,250000.0,229166.359375,
