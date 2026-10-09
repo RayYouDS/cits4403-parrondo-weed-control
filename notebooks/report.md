@@ -31,7 +31,9 @@ Specifically, the study investigates how weed infestation changes over time, how
 
 A Cellular Automaton (CA) was developed to simulate the spatiotemporal dynamics of weed infestation across the study area.
 
-The study area was represented as a regular two-dimensional grid, with each cell representing a spatial unit of 500 m × 500 m. Each valid cell was assigned a Weed Index ranging from 0 to 1, representing the relative level of weed infestation. Cells outside the modelled land area were excluded from the simulation.
+The study area was defined using locality boundary data obtained from the Government of Western Australia (Western Australian Land Information Authority, 2018). The polygon geometries were rasterised into a regular two-dimensional grid, with each cell representing a spatial unit of 500 m × 500 m.
+
+Each valid cell was assigned a Weed Index ranging from 0 to 1, representing the relative level of weed infestation. Cells outside the modelled land area were excluded from the simulation.
 
 The state of each cell at timestep (t) is defined as:
 
@@ -172,6 +174,8 @@ Write your conclusions here
 
 # References
 
-1. Australian Bureau of Statistics (2021) Population: Census. Available at: https://www.abs.gov.au/statistics/people/population/population-census/latest-release (Accessed: 7 October 2026).
+1. Landgate (2018) Localities (LGATE-234). Government of Western Australia. Available at: https://catalogue.data.wa.gov.au/dataset/localities.
+
+2. Australian Bureau of Statistics (2021) Population: Census. Available at: https://www.abs.gov.au/statistics/people/population/population-census/latest-release.
 
 
