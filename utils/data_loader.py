@@ -5,7 +5,7 @@ from pathlib import Path
 # ================ Data Path ==============================
 def load_locality_data(base_path:Path|None=None):
     if base_path is None:
-        base_path = Path('data')
+        base_path = Path(__file__).resolve().parents[1] / 'data'
 
     localities_path = (
         base_path /

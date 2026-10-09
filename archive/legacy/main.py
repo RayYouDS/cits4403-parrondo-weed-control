@@ -1,7 +1,17 @@
-from src.geo_to_graph import gdf_to_graph
+# Resolve the repository from this notebook's directory or the repository root.
+from pathlib import Path
+import os
+import sys
+_start = Path.cwd().resolve()
+repo_root = next(p for p in (_start, *_start.parents) if (p / "src" / "weed_ca.py").is_file())
+os.chdir(repo_root)
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+from utils.geo_to_graph import gdf_to_graph
 import geopandas as gpd
 from pathlib import Path
-from src.geo_visualize import plot_geodataframe, plot_networkx
+from utils.geo_visualize import plot_geodataframe, plot_networkx
 import matplotlib.pyplot as plt
 
 

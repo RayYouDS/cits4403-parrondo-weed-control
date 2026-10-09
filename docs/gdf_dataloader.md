@@ -13,7 +13,7 @@ The preprocessing workflow includes:
 The data can be loaded by calling `the load_locality_data()` function:
 
 ```python
-from src.data_loader import load_locality_data
+from utils.data_loader import load_locality_data
 
 localities = load_locality_data()
 ```
@@ -21,7 +21,7 @@ localities = load_locality_data()
 If the working directory differs from the default location, a custom base path for the datasets can be provided:
 
 ```python
-from src.data_loader import load_locality_data
+from utils.data_loader import load_locality_data
 
 BASE_PATH = Path('data')
 localities = load_locality_data(BASE_PATH)
@@ -74,4 +74,4 @@ plt.show()
 
 Output:
 
-![Failed to load figure](./figures/perth_population_heatmep.png)
+![Failed to load figure](figures/perth_population_heatmep.png)

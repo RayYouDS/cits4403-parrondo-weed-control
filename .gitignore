@@ -7,6 +7,8 @@ __pycache__/
 venv/
 env/
 /cits4403_weed_env_01/
+/.uv-cache/
+/.uv-python/
 
 # Jupyter
 .ipynb_checkpoints/

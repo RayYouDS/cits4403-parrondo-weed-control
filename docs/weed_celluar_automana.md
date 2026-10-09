@@ -46,7 +46,7 @@ weedca.show_grid()
 
 Example output:
 
-<img src="../docs/figures/weed_show_fig.png" width="300">
+<img src="figures/weed_show_fig.png" width="300">
 
 ## How can I push the CA to move forward
 
@@ -68,7 +68,7 @@ weedca.animate(frames=108, fps=20)
 
 Example Output:
 
-<img src="../docs/figures/anime_example.gif" width="300">
+<img src="figures/anime_example.gif" width="300">
 
 ## How can I select the simulation methods I want
 

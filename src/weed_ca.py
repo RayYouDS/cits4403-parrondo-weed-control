@@ -1,5 +1,5 @@
 import numpy as np
-from src.weed_simulation_tools import *
+from utils.weed_simulation_tools import *
 import matplotlib.pyplot as plt
 from collections.abc import Callable
 from scipy.ndimage import convolve

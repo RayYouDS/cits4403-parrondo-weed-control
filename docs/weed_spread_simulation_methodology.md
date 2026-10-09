@@ -41,7 +41,7 @@ This formulation constrains the weed density index within a predefined range and
 
 E.g. a simulated weed index heat map at presure coefficient = 0.05
 
-<img src='./figures/weed_index_distribution.png' width='600'>
+<img src='figures/weed_index_distribution.png' width='600'>
 
 ## weed occurrence probability
 
