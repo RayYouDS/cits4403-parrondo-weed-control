@@ -4,6 +4,12 @@ A Python cellular automaton for weed growth, spatial propagation and treatment i
 
 Repository: <https://github.com/RayYouDS/cits4403-parrondo-weed-control>
 
+## Quick Example
+
+Methodology: Geospatial Data + Population Data + Population Data -> Rasterisation -> Cellular Automaton Simulation (Iterative Updates over Timesteps)
+
+<img src="./docs/figures/anime_example.gif" alt="Example Simulation" height="500" />
+
 ## 1. Get the project
 
 Install Python 3 and Git, then open a terminal. The saved experiments were run with **Python 3.14.4**; dependencies are listed in `requirements.txt` and are not pinned to exact versions.
